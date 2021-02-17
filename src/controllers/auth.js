@@ -43,33 +43,31 @@ const postLogin = async (req, res) => {
     return;
   }
 
+  // Stage 2. Find User
   var user = null;
   try {
     user = await userModel.findOne({username: username});
   } catch (error) {
-    console.log(error);
-    res.render("home.ejs");
-    return;
+    throw error;
   }
-
+ 
   if (user == null) {
     const data = {
       objErrors: {
-        bUserDoesNotExist: true
+        bUserDoesNotExist: { message: "Invalid username/password combination."}
       }
     }
     res.render("auth/login.ejs", data);
     return;
   }
 
-  const passwordSalt = user.passwordSalt;
-  const passwordHash = user.passwordHash;
-  const currentPasswordHash = User.generateHash(password, passwordSalt);
+  var salt = "keyboard cats";
+  var hash = crypto.pbkdf2Sync(password, salt, 10, 512, "sha512").toString("hex");
 
-  if (passwordHash != currentPasswordHash) {
+  if (user.password != hash) {
     const data = {
-      objRegisterErrors: {
-        bPasswordIsIncorrect: true
+      objErrors: {
+        bInvalidPassword: { message: "Invalid username/password combination."}
       }
     }
     res.render("auth/login.ejs", data);
@@ -78,20 +76,14 @@ const postLogin = async (req, res) => {
 
   const payload = {
     bUserIsAuthenticated: true,
-    objUser: {
-      user_id: user._id,
-      username: user.username,
-      email: user.email
-    }
-  }
-  var kur = jwt.sign(payload, "keyboard cat");
-
-  req.session.bUserIsAuthenticated = true;
-  req.session.objUser = {
     user_id: user._id,
     username: user.username,
     email: user.email
-  };
+  }
+  var token = jwt.sign(payload, "keyboard cat", {expiresIn: "1h"});
+
+  // Stage 3. Login User
+  res.cookie("jwt", token, {httpOnly: true});
   res.redirect("/");
 
 }
@@ -137,12 +129,12 @@ const postRegister = async (req, res) => {
 
   // Stage 3. Crypto
   var salt = "keyboard cats";
-  var hash = crypto.pbkdf2Sync(this.password, salt, 10, 512, "sha512").toString("hex");
+  var hash = crypto.pbkdf2Sync(password, salt, 10, 512, "sha512").toString("hex");
 
   // Stage 4. User Creation / We already did validations, so we can optimize
   user = new userModel({username: username, password: hash, email: email});
   await user.save({validateBeforeSave: false});
-  res.render("home.ejs");
+  res.redirect("/");
   
 }
 
