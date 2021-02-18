@@ -1,3 +1,5 @@
 .vscode
 node_modules/
-config.js
+
+#The bellow should be uncommented. They are currently not for educational purposes.
+#config.js

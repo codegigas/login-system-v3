@@ -2,6 +2,7 @@
 
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const cgValidator = require("../../lib/index.js");
 const userModel = require("../models/user.js");
 
 const getLoginPage = (req, res) => {
@@ -46,7 +47,7 @@ const postLogin = async (req, res) => {
   // Stage 2. Find User
   var user = null;
   try {
-    user = await userModel.findOne({username: username});
+    user = await userModel.findOne({username: username}).lean();
   } catch (error) {
     throw error;
   }
@@ -80,10 +81,10 @@ const postLogin = async (req, res) => {
     username: user.username,
     email: user.email
   }
-  var token = jwt.sign(payload, "keyboard cat", {expiresIn: "1h"});
+  var token = jwt.sign(payload, "keyboard cats", {expiresIn: "1h"});
 
   // Stage 3. Login User
-  res.cookie("jwt", token, {httpOnly: true});
+  await res.cookie("jwt", token, {httpOnly: true});
   res.redirect("/");
 
 }
@@ -94,16 +95,14 @@ const postRegister = async (req, res) => {
   const confirmPassword = req.body.confirmPassword;
   const email = req.body.email;
 
-  // Stage 1. Input Data Validation
+  // Stage 1. Input Data Validation (custom)
   const bPasswordsMatch = (password === confirmPassword);
+  const bEmailIsValid = cgValidator.isEmailValid(email);
 
-  if (bPasswordsMatch === false) {
-    var data = {
-      objErrors: {}
-    }
-    if (bPasswordsMatch === false) {
-      data.objErrors.passwordsDoNotMatch = {message: "passwords do not match" }
-    }
+  if (bPasswordsMatch === false || bEmailIsValid === false) {
+    var data = { objErrors: {} }
+    if (bPasswordsMatch === false) { data.objErrors.passwordsDoNotMatch = {message: "Passwords do not match." } }
+    if (bEmailIsValid === false) { data.objErrors.emailIsNotValid = {message: "Email is not valid." } }
     
     res.render("auth/register.ejs", data);
     return;
@@ -138,9 +137,15 @@ const postRegister = async (req, res) => {
   
 }
 
+const postLogout = (req, res) => {
+  res.clearCookie("jwt");
+  res.redirect('/');
+}
+
 module.exports = {
   getLoginPage: getLoginPage,
   getRegisterPage: getRegisterPage,
   postLogin: postLogin,
-  postRegister: postRegister
+  postRegister: postRegister,
+  postLogout: postLogout
 }
