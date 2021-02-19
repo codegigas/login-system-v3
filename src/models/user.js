@@ -21,10 +21,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "Email field cannot be empty."],
     unique: true, // this is not a validator, it just creates an index...
-    match: [
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/gm,
-      "Email is not valid"
-    ],
     validate: {
       validator: fCheckIfEmailIsAvaliableAsync,
       message: (props) => `Email "${props.value}" is not avaliable.`

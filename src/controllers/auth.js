@@ -2,6 +2,7 @@
 
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const cg_validator = require("../../lib/cg_validator/index.js");
 const userModel = require("../models/user.js");
 
 const getLoginPage = (req, res) => {
@@ -90,12 +91,14 @@ const postLogin = async (req, res) => {
 const postRegister = async (req, res) => {
   const { username, password, confirmPassword, email } = req.body;
 
-  // Stage 1. Input Data Validation (custom)
+  // Stage 1. Input Data Validation
   const bPasswordsMatch = (password === confirmPassword);
+  const bEmailIsValid = cg_validator.isEmailValid(email);
 
-  if (bPasswordsMatch === false) {
+  if (bPasswordsMatch === false || bEmailIsValid === false) {
     var data = { objErrors: {} }
     if (bPasswordsMatch === false) { data.objErrors.passwordsDoNotMatch = {message: "Passwords do not match." } }
+    if (bEmailIsValid === false) { data.objErrors.passwordsDoNotMatch = {message: "Email is not valid." } }
     
     res.render("auth/register.ejs", data);
     return;
