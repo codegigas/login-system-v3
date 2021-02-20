@@ -6,7 +6,7 @@ const uri = config.DB_CONNECTION_URL;
 const options = {
   useUnifiedTopology: true,
   useNewUrlParser: true,
-  useCreateIndex: false
+  useCreateIndex: true
 }
 // Private Variables
 var db = null;

@@ -25,19 +25,13 @@ const postLogin = async (req, res) => {
   const { username, password } = req.body;
 
   // Stage 1. Input Data Validation
-  const bUsernameFieldIsEmpty = (username === "" ? true : false );
-  const bPasswordFieldIsEmpty = (password === "" ? true : false );
-  
-  if (bUsernameFieldIsEmpty === true || bPasswordFieldIsEmpty === true) {
-    var data = {
-      objErrors: {}
-    }
-    if (bUsernameFieldIsEmpty === false) {
-      data.objErrors.usernameIsEmpty = {message: "username field cannot be empty." }
-    }
-    if (bPasswordFieldIsEmpty === false) {
-      data.objErrors.passwordIsEmpty = {message: "password field cannot be empty." }
-    }
+  const bUsernameFieldIsEmpty = cg_validator.isStringEmpty(username);
+  const bPasswordFieldIsEmpty = cg_validator.isStringEmpty(username, {ignore_whitespace: false});
+  const bValidatorHasErrors = ((bPasswordsMatch === false) || (bEmailIsValid === false));
+  if (bValidatorHasErrors) {
+    var data = { objErrors: {} }
+    if (bUsernameFieldIsEmpty === false) { data.objErrors.usernameIsEmpty = {message: "Username field cannot be empty." } }
+    if (bPasswordFieldIsEmpty === false) { data.objErrors.passwordIsEmpty = {message: "Password field cannot be empty." } }
     
     res.render("auth/login.ejs", data);
     return;
@@ -92,10 +86,10 @@ const postRegister = async (req, res) => {
   const { username, password, confirmPassword, email } = req.body;
 
   // Stage 1. Input Data Validation
-  const bPasswordsMatch = (password === confirmPassword);
+  const bPasswordsMatch = cg_validator.areStringsEqual(password, confirmPassword);
   const bEmailIsValid = cg_validator.isEmailValid(email);
-
-  if (bPasswordsMatch === false || bEmailIsValid === false) {
+  const bValidatorHasErrors = ((bPasswordsMatch === false) || (bEmailIsValid === false));
+  if (bValidatorHasErrors) {
     var data = { objErrors: {} }
     if (bPasswordsMatch === false) { data.objErrors.passwordsDoNotMatch = {message: "Passwords do not match." } }
     if (bEmailIsValid === false) { data.objErrors.passwordsDoNotMatch = {message: "Email is not valid." } }
@@ -122,7 +116,7 @@ const postRegister = async (req, res) => {
     return;
   }
 
-  // Stage 3. Crypto
+  // Stage 3. Password Hashing
   var salt = "keyboard cats";
   var hash = crypto.pbkdf2Sync(password, salt, 10, 512, "sha512").toString("hex");
 
